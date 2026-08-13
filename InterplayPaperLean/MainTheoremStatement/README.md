@@ -11,7 +11,8 @@ Substantive lemmas and proof machinery belong in the subject-based directories
 outside this specification layer. They may use these definitions, but should
 not replace them with alternate versions.
 
-`WeakContractivity.lean` currently marks an intentionally opaque specification
-boundary. The theorem statement is not fully locked down until that predicate
-is expanded using the paper's definitions of admissible kinetics, trajectories,
-stoichiometric compatibility classes, relative interiors, and norms.
+The conclusion in `WeakContractivity.lean` is explicit. It depends on
+`Kinetics.lean` and `Trajectories.lean`, and quantifies over every admissible
+kinetics, every stoichiometric compatibility class, a norm, every pair of
+distinct trajectories in the relative interior, and every pair of common
+forward times.
