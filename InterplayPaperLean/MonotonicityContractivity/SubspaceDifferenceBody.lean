@@ -112,6 +112,37 @@ theorem sectionInSubspace_mem_nhds_zero_of_strictlyPositive
   rw [← heq]
   exact hpull
 
+theorem sectionInSubspace_mem_interior_of_add_strictlyPositive
+    {V : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V]
+    (K : ClosedConvexCone V) (S : Submodule ℝ V) {b : V}
+    (hb : b ∈ K.span) (hS : S ≤ K.span) {s : S}
+    (hs : b + (s : V) ∈ intrinsicInterior ℝ (K : Set V)) :
+    s ∈ interior (sectionInSubspace K S b) := by
+  obtain ⟨y, hy, hys⟩ := (mem_intrinsicInterior.mp hs)
+  let f : S → affineSpan ℝ (K : Set V) := fun u =>
+    ⟨b + (u : V), by
+      change b + (u : V) ∈ (affineSpan ℝ (K : Set V) : Set V)
+      rw [K.affineSpan_eq_span]
+      exact K.span.add_mem hb (hS u.property)⟩
+  have hf : Continuous f := by
+    exact Continuous.subtype_mk (continuous_const.add continuous_subtype_val) _
+  have hf_open : IsOpen (f ⁻¹' interior ((↑) ⁻¹' (K : Set V) :
+      Set (affineSpan ℝ (K : Set V)))) := isOpen_interior.preimage hf
+  have hs_pre : s ∈ f ⁻¹' interior ((↑) ⁻¹' (K : Set V) :
+      Set (affineSpan ℝ (K : Set V))) := by
+    change f s ∈ interior ((↑) ⁻¹' (K : Set V) : Set (affineSpan ℝ (K : Set V)))
+    have hfy : f s = y := by
+      apply Subtype.ext
+      exact hys.symm
+    rw [hfy]
+    exact hy
+  apply interior_maximal _ hf_open hs_pre
+  intro u hu
+  change b + (u : V) ∈ K
+  have hmem : f u ∈ ((↑) ⁻¹' (K : Set V) :
+      Set (affineSpan ℝ (K : Set V))) := interior_subset hu
+  exact hmem
+
 theorem subspaceDifferenceBody_absorbent_of_strictlyPositive
     {V : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V]
     (K : ClosedConvexCone V) (S : Submodule ℝ V) {b : V}
@@ -207,5 +238,55 @@ noncomputable def subspaceSectionNormOfCone {V : Type*}
     (subspaceDifferenceBody_isVonNBounded_of_section_isBounded K S b
       (sectionInSubspace_isBounded_of_pointedAlong K S
         (intrinsicInterior_subset hb) hpointed))
+
+@[simp] theorem subspaceSectionNormOfCone_apply {V : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V] [FiniteDimensional ℝ V]
+    (K : ClosedConvexCone V) (S : Submodule ℝ V) (b : V)
+    (hb : K.StrictlyPositive b) (hS : S ≤ K.span) (hpointed : K.PointedAlong S)
+    (v : S) :
+    subspaceSectionNormOfCone K S b hb hS hpointed v =
+      gauge (subspaceDifferenceBody K S b) v := rfl
+
+theorem continuous_subspaceSectionNormOfCone {V : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V] [FiniteDimensional ℝ V]
+    (K : ClosedConvexCone V) (S : Submodule ℝ V) (b : V)
+    (hb : K.StrictlyPositive b) (hS : S ≤ K.span) (hpointed : K.PointedAlong S) :
+    Continuous (subspaceSectionNormOfCone K S b hb hS hpointed) := by
+  rw [continuous_iff_continuousAt]
+  intro v
+  change ContinuousAt (gauge (subspaceDifferenceBody K S b)) v
+  exact (continuous_gauge (subspaceDifferenceBody_convex K S b)
+    (subspaceDifferenceBody_mem_nhds_zero_of_section K S
+      (intrinsicInterior_subset hb)
+      (sectionInSubspace_mem_nhds_zero_of_strictlyPositive K S hb hS))).continuousAt
+
+theorem normalized_mem_subspaceDifferenceBody {V : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V] [FiniteDimensional ℝ V]
+    (K : ClosedConvexCone V) (S : Submodule ℝ V) (b : V)
+    (hb : K.StrictlyPositive b) (hS : S ≤ K.span) (hpointed : K.PointedAlong S)
+    {v : S} (hv : v ≠ 0) :
+    (subspaceSectionNormOfCone K S b hb hS hpointed v)⁻¹ • v ∈
+      subspaceDifferenceBody K S b := by
+  let p := subspaceSectionNormOfCone K S b hb hS hpointed
+  have hpne : p v ≠ 0 := fun hp => hv (p.definite v hp)
+  have hpnonneg : 0 ≤ p v := by positivity
+  have hnorm : p ((p v)⁻¹ • v) = 1 := by
+    change p.toSeminorm ((p v)⁻¹ • v) = 1
+    rw [map_smul_eq_mul, Real.norm_eq_abs, abs_inv, abs_of_nonneg hpnonneg,
+      inv_mul_cancel₀ hpne]
+  have hnhds : subspaceDifferenceBody K S b ∈ nhds (0 : S) :=
+    subspaceDifferenceBody_mem_nhds_zero_of_section K S
+      (intrinsicInterior_subset hb)
+      (sectionInSubspace_mem_nhds_zero_of_strictlyPositive K S hb hS)
+  have hclosure : closure (subspaceDifferenceBody K S b) =
+      subspaceDifferenceBody K S b :=
+    (subspaceDifferenceBody_isCompact_of_section_isBounded K S b
+      (sectionInSubspace_isBounded_of_pointedAlong K S
+        (intrinsicInterior_subset hb) hpointed)).isClosed.closure_eq
+  rw [← hclosure]
+  apply (gauge_le_one_iff_mem_closure
+    (subspaceDifferenceBody_convex K S b) hnhds).mp
+  rw [← subspaceSectionNormOfCone_apply K S b hb hS hpointed]
+  exact hnorm.le
 
 end InterplayPaperLean

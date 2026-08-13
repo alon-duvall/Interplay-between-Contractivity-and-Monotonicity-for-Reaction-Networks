@@ -24,6 +24,10 @@ structure LocalEvolution {species reactions : ℕ}
     existsAt (evolve s x) t
   semigroup : ∀ {x s t}, existsAt x s → existsAt x (s + t) →
     evolve t (evolve s x) = evolve (s + t) x
+  injective : ∀ {x y t}, existsAt x t → existsAt y t →
+    evolve t x = evolve t y → x = y
+  trajectory_exists : ∀ (trajectory : Trajectory network kinetics) t,
+    t ∈ trajectory.timeDomain → existsAt trajectory.initial t
   unique : ∀ (trajectory : Trajectory network kinetics) t,
     t ∈ trajectory.timeDomain → evolve t trajectory.initial = trajectory.state t
 
